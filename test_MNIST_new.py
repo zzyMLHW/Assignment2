@@ -47,7 +47,7 @@ try:
             label[flag,int(dir)] = 1.0
             flag+=1
 except Exception as e:
-    print("数据加载部分跳过或出错 (如果你是在测试代码逻辑请忽略):", e)
+    print("数据加载出错:", e)
 
 ratioTraining = 0.95
 xTraining, xValidation, yTraining, yValidation = train_test_split(data, label, test_size=1 - ratioTraining, random_state=0)
@@ -139,7 +139,6 @@ dir_path = './MNIST/test'
 xTesting = np.zeros((10000, 784), dtype=float)
 yTesting = np.zeros((10000, 10), dtype=float)
 
-# 加载测试数据逻辑 (略微加了防错)
 if os.path.exists(dir_path):
     file_ls = os.listdir(dir_path)
     flag = 0
@@ -155,7 +154,6 @@ if os.path.exists(dir_path):
     except Exception as e:
         print("测试集加载出错:", e)
 
-    # 加载刚才训练好的最佳模型
     if os.path.exists(model_filename):
         storedNN = load_variable(model_filename)
         wrongs, predictedLabel, accuracy, yOutput = nn_test(storedNN, xTesting, yTesting)

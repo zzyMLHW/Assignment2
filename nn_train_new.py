@@ -9,7 +9,7 @@ def nn_train(nn,train_x,train_y):
     num_batches = m / batch_size
     kk = np.random.permutation(m)
     for l in range(int(num_batches)):
-        batch_x = train_x[kk[l * batch_size : (l + 1) * batch_size], :] #(l+1)*batch_size也可以改成max((l+1)*batch_size, len(kk))
+        batch_x = train_x[kk[l * batch_size : (l + 1) * batch_size], :] 
         batch_y = train_y[kk[l * batch_size : (l + 1) * batch_size], :]
         nn = nn_forward(nn,batch_x,batch_y)
         nn = nn_backward(nn,batch_y)

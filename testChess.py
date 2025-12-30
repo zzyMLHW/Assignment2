@@ -88,10 +88,37 @@ for epoch in range(maxEpoches):
     if accuracy > maxAccuracy:
         maxAccuracy = accuracy
         save_variable(nn, 'storedNN_Chess.npz')
-    cost = totalCost[epoch - 1]
+    cost = totalCost[epoch]
     print('Epoch:',epoch)
     print('Accuracy:',accuracy)
-    print('Cost:',totalCost[epoch - 1])
+    print('Cost:',totalCost[epoch])
+
+# 绘制 Accuracy 和 Cost 曲线
+epochs = range(1, len(totalAccuracy) + 1)
+plt.figure(figsize=(12, 5))
+
+# 绘制 Accuracy 曲线
+plt.subplot(1, 2, 1)
+plt.plot(epochs, totalAccuracy, 'b-', linewidth=2, label='Validation Accuracy')
+plt.xlabel('Epoch', fontsize=12)
+plt.ylabel('Accuracy', fontsize=12)
+plt.title('Accuracy Curve (Chess Dataset)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.legend()
+
+# 绘制 Cost 曲线
+plt.subplot(1, 2, 2)
+plt.plot(epochs, totalCost, 'r-', linewidth=2, label='Training Cost')
+plt.xlabel('Epoch', fontsize=12)
+plt.ylabel('Cost', fontsize=12)
+plt.title('Cost Curve (Chess Dataset)', fontsize=14, fontweight='bold')
+plt.grid(True, alpha=0.3)
+plt.legend()
+
+plt.tight_layout()
+plt.savefig('training_curves_chess.png', dpi=300, bbox_inches='tight')
+plt.close()  # 关闭图形，避免影响后续绘图
+print('训练曲线已保存为 training_curves_chess.png')
 
 if os.path.exists('storedNN_Chess.npz'):
     storedNN = load_variable('storedNN_Chess.npz')
@@ -111,32 +138,52 @@ if os.path.exists('storedNN_Chess.npz'):
             else:
                 trueNegative += 1
     print(truePositive, trueNegative, falsePositive, falseNegative)
-    totalScores = sorted(decisionValues)
-    index = sorted(range(len(decisionValues)), key=decisionValues.__getitem__)
-    labels = np.zeros(len(yTesting))
-    for i in range(len(labels)):
-        labels[i] = np.argmax(yTesting[index[i]])
+    
+    # 计算ROC曲线
+    # decisionValues是draw（正类）的概率，值越大越可能是draw
+    # 按决策值从高到低排序，这样阈值从高到低变化时，先预测决策值高的为正类
+    totalScores = sorted(decisionValues, reverse=True)  # 从高到低排序
+    index = sorted(range(len(decisionValues)), key=lambda i: decisionValues[i], reverse=True)
+    
+    # 获取真实标签（0表示draw正类，1表示not draw负类）
+    labels = np.array([np.argmax(yTesting[i]) for i in index])
 
-    truePositive = np.zeros(len(labels) + 1)
-    falsePositive = np.zeros(len(labels) + 1)
-    for i in range(len(totalScores)):
-        if labels[i] < 0.5:
-            truePositive[0] += 1
-        else:
-            falsePositive[0] += 1
-    for i in range(len(totalScores)):
-        if labels[i] < 0.5:
-            truePositive[i + 1] = truePositive[i] - 1
-            falsePositive[i + 1] = falsePositive[i]
-        else:
-            falsePositive[i + 1] = falsePositive[i] - 1
-            truePositive[i + 1] = truePositive[i]
-    truePositive = truePositive / truePositive[0]
-    falsePositive = falsePositive / falsePositive[0]
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(falsePositive, truePositive)
-    plt.show()
-    plt.savefig('ROC.png')
+    # 计算正类和负类的总数
+    numPositive = np.sum(labels == 0)  # 标签为0的样本数（draw）
+    numNegative = np.sum(labels == 1)  # 标签为1的样本数（not draw）
+    
+    if numPositive == 0 or numNegative == 0:
+        print('警告: 测试集中只有一个类别，无法绘制ROC曲线')
+    else:
+        # 初始化TPR和FPR数组
+        tpr = np.zeros(len(labels) + 1)
+        fpr = np.zeros(len(labels) + 1)
+        
+        # 从所有样本都被预测为负类开始（TP=0, FP=0, TPR=0, FPR=0）
+        # 逐步降低阈值，将决策值高的样本先预测为正类
+        for i in range(len(labels)):
+            # 前i+1个样本（决策值最高的）被预测为正类
+            # 计算这些样本中实际为正类和负类的数量
+            tp = np.sum(labels[:i+1] == 0)  # 前i+1个样本中，实际为正类的数量
+            fp = np.sum(labels[:i+1] == 1)  # 前i+1个样本中，实际为负类的数量
+            
+            tpr[i + 1] = tp / numPositive if numPositive > 0 else 0
+            fpr[i + 1] = fp / numNegative if numNegative > 0 else 0
+        
+        # 绘制ROC曲线
+        plt.figure(figsize=(8, 8))
+        plt.plot(fpr, tpr, 'b-', linewidth=2, label='ROC Curve')
+        plt.plot([0, 1], [0, 1], 'r--', linewidth=1, label='Random Classifier')
+        plt.xlabel('False Positive Rate', fontsize=12)
+        plt.ylabel('True Positive Rate', fontsize=12)
+        plt.title('ROC Curve (Chess Dataset)', fontsize=14, fontweight='bold')
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+        plt.xlim([0, 1])
+        plt.ylim([0, 1])
+        plt.tight_layout()
+        plt.savefig('ROC.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        print('ROC曲线已保存为 ROC.png')
 
 
