@@ -52,7 +52,9 @@ except Exception as e:
 ratioTraining = 0.95
 xTraining, xValidation, yTraining, yValidation = train_test_split(data, label, test_size=1 - ratioTraining, random_state=0)
 
-model_filename = 'storedNN_Nesterov.npz' 
+alpha = 0.9
+rho = 0.9
+model_filename = f'storedNN_Nesterov_alpha={alpha}_rho={rho}.npz'
 
 if os.path.exists(model_filename):
     print(f"Loading existing model from {model_filename}...")
@@ -64,7 +66,7 @@ else:
         batch_normalization=1, 
         active_function='relu', 
         batch_size=50, 
-        learning_rate=0.0005, 
+        learning_rate=0.001,
         optimization_method='RMSProp_Nesterov', 
         objective_function='Cross Entropy',
         rho=0.9,   # RMSProp decay
@@ -120,7 +122,7 @@ plt.grid(True, alpha=0.3)
 plt.legend()
 
 plt.tight_layout()
-plt.savefig('training_curves_nesterov.png', dpi=300, bbox_inches='tight')
+plt.savefig(f'training_curves_nesterov_alpha={alpha}_rho={rho}.png', dpi=300, bbox_inches='tight')
 plt.show()
 print('训练曲线已保存为 training_curves_nesterov.png')
 
@@ -130,7 +132,7 @@ training_data = {
     'totalCost': totalCost,
     'epochs': list(range(1, len(totalAccuracy) + 1))
 }
-save_variable(training_data, 'training_data_nesterov.pkl')
+save_variable(training_data, f'training_data_nesterov_alpha={alpha}_rho={rho}.pkl')
 
 #Testing
 dir_path = './MNIST/test'

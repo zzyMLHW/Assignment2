@@ -2,78 +2,89 @@ import matplotlib.pyplot as plt
 import pickle
 import os
 
+
 def load_variable(filename):
     """加载保存的变量"""
-    f = open(filename, 'rb')
-    r = pickle.load(f)
-    f.close()
+    with open(filename, 'rb') as f:
+        r = pickle.load(f)
     return r
 
-def plot_training_curves(data_file='training_data.pkl', save_path='training_curves.png'):
+
+def compare_curves(file1='training_data.pkl', file2='training_data_nesterov.pkl', save_path='comparison_curves.png'):
     """
-    从文件读取训练数据并绘制曲线
-    
-    参数:
-        data_file: 训练数据文件路径（默认: 'training_data.pkl'）
-        save_path: 保存图片的路径（默认: 'training_curves.png'）
+    读取两个训练数据文件并绘制对比曲线
     """
-    # 检查文件是否存在
-    if not os.path.exists(data_file):
-        print(f'错误: 文件 {data_file} 不存在！')
-        print('请先运行 testMNIST.py 生成训练数据文件。')
+    # 1. 检查文件是否存在
+    if not os.path.exists(file1):
+        print(f'错误: 文件 {file1} 不存在！')
         return
-    
-    # 加载数据
-    print(f'正在从 {data_file} 加载数据...')
-    training_data = load_variable(data_file)
-    
-    totalAccuracy = training_data['totalAccuracy']
-    totalCost = training_data['totalCost']
-    epochs = training_data['epochs']
-    
-    print(f'成功加载数据: {len(epochs)} 个 epoch')
-    
-    # 绘制曲线
-    plt.figure(figsize=(12, 5))
-    
-    # 绘制 Accuracy 曲线
+    if not os.path.exists(file2):
+        print(f'错误: 文件 {file2} 不存在！')
+        return
+
+    # 2. 加载数据
+    print(f'正在加载 {file1} (Baseline: Momentum)...')
+    data1 = load_variable(file1)
+
+    print(f'正在加载 {file2} (RMSProp + Nesterov)...')
+    data2 = load_variable(file2)
+
+    # 提取数据 1 (Baseline - Momentum)
+    acc1 = data1['totalAccuracy']
+    cost1 = data1['totalCost']
+    epochs1 = data1['epochs']
+
+    # 提取数据 2 (RMSProp + Nesterov)
+    acc2 = data2['totalAccuracy']
+    cost2 = data2['totalCost']
+    epochs2 = data2['epochs']
+
+    # 3. 绘制曲线
+    plt.figure(figsize=(14, 6))
+
+    # --- 左图：Accuracy 对比 ---
     plt.subplot(1, 2, 1)
-    plt.plot(epochs, totalAccuracy, 'b-', linewidth=2, label='Validation Accuracy')
+    # 绘制第一条线 (蓝色虚线) - Momentum
+    plt.plot(epochs1, acc1, 'b--', linewidth=1.5, alpha=0.7, label='Momentum (Baseline)')
+    # 绘制第二条线 (红色实线) - RMSProp + Nesterov
+    plt.plot(epochs2, acc2, 'r-', linewidth=2, label='RMSProp + Nesterov')
+
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Accuracy', fontsize=12)
-    plt.title('Accuracy Curve', fontsize=14, fontweight='bold')
+    plt.title('Validation Accuracy Comparison', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
-    plt.legend()
-    
-    # 绘制 Cost 曲线
+    plt.legend(loc='lower right')
+
+    # --- 右图：Cost 对比 ---
     plt.subplot(1, 2, 2)
-    plt.plot(epochs, totalCost, 'r-', linewidth=2, label='Training Cost')
+    # 绘制第一条线 (蓝色虚线) - Momentum
+    plt.plot(epochs1, cost1, 'b--', linewidth=1.5, alpha=0.7, label='Momentum (Baseline)')
+    # 绘制第二条线 (红色实线) - RMSProp + Nesterov
+    plt.plot(epochs2, cost2, 'r-', linewidth=2, label='RMSProp + Nesterov')
+
     plt.xlabel('Epoch', fontsize=12)
     plt.ylabel('Cost', fontsize=12)
-    plt.title('Cost Curve', fontsize=14, fontweight='bold')
+    plt.title('Training Cost Comparison', fontsize=14, fontweight='bold')
     plt.grid(True, alpha=0.3)
-    plt.legend()
-    
+    plt.legend(loc='upper right')
+
     plt.tight_layout()
-    
+
     # 保存图片
     plt.savefig(save_path, dpi=300, bbox_inches='tight')
-    print(f'曲线图已保存为 {save_path}')
-    
+    print(f'\n对比曲线图已保存为 {save_path}')
+
     # 显示图片
     plt.show()
-    
-    # 打印统计信息
-    print('\n训练统计信息:')
-    print(f'最终 Accuracy: {totalAccuracy[-1]:.4f}')
-    print(f'最高 Accuracy: {max(totalAccuracy):.4f} (Epoch {epochs[totalAccuracy.index(max(totalAccuracy))]})')
-    print(f'最终 Cost: {totalCost[-1]:.6f}')
-    print(f'最低 Cost: {min(totalCost):.6f} (Epoch {epochs[totalCost.index(min(totalCost))]})')
+
+    # 4. 打印数值对比表格
+    print('=' * 60)
+    print(f"{'Metric':<20} | {'Momentum':<20} | {'RMSProp+Nesterov':<20}")
+    print('-' * 66)
+    print(f"{'Max Accuracy':<20} | {max(acc1):.4f}               | {max(acc2):.4f}")
+    print(f"{'Final Cost':<20} | {cost1[-1]:.4f}               | {cost2[-1]:.4f}")
+    print('=' * 60)
+
 
 if __name__ == '__main__':
-    # 默认使用 training_data.pkl 文件
-    plot_training_curves()
-    
-    # 如果需要指定其他文件，可以这样调用:
-    # plot_training_curves(data_file='your_data_file.pkl', save_path='your_output.png')
-
+    compare_curves()

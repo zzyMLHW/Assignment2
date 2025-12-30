@@ -49,7 +49,15 @@ xTraining, xValidation, yTraining, yValidation = train_test_split(data, label, t
 if os.path.exists('storedNN.npz'):
     nn = load_variable('storedNN.npz')
 else:
-    nn = NN(layer=[784,400,169,49,10], batch_normalization = 1, active_function='relu', batch_size = 50, learning_rate=0.01, optimization_method='Adam',objective_function='Cross Entropy')
+    nn = NN(
+        layer=[784,400,169,49,10],
+        batch_normalization = 1,
+        active_function='relu',
+        batch_size = 50,
+        learning_rate=0.001,
+        optimization_method='Momentum',
+        objective_function='Cross Entropy'
+    )
 
 epoch = 0
 maxAccuracy = 0

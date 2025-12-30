@@ -1,17 +1,18 @@
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 import matplotlib.pyplot as plt
-from NN import *
-from nn_train import nn_train
+from NN_new import *
+from nn_train_new import nn_train
 from nn_forward import nn_forward
 from nn_test import nn_test
 from nn_predict import nn_predict
 from nn_backward import nn_backward
-from nn_applygradient import nn_applygradient
+from nn_applygradient_new import nn_applygradient
 from function import *
 import numpy as np
 import pickle
 import os
+
 
 def save_variable(v,filename):
     f=open(filename,'wb')
@@ -59,28 +60,41 @@ scaler.transform(xTraining)
 scaler.transform(xTesting)
 scaler.transform(xValidation)
 
-nn = NN(layer=[6, 20, 20, 20, 20, 2],active_function='sigmoid',batch_size = 100,learning_rate = 0.01,optimization_method='Momentum', batch_normalization = 1, objective_function='Cross Entropy')
+alpha = 0.9
+rho = 0.9
+
+nn = NN(
+    layer=[6, 20, 20, 20, 20, 2],
+    active_function='sigmoid',
+    batch_size = 100,
+    learning_rate = 0.001,
+    optimization_method='RMSProp_Nesterov',
+    batch_normalization = 1,
+    objective_function='Cross Entropy',
+    rho=rho,
+    alpha=alpha
+)
+
 epoch = 0
 maxAccuracy = 0
 totalAccuracy = []
 totalCost = []
 maxEpoches = 100
 for epoch in range(maxEpoches):
-#    epoch +=1
     nn = nn_train(nn, xTraining, yTraining)
     totalCost.append(sum(nn.cost.values()) / len(nn.cost.values()))
     _, _, accuracy,_ = nn_test(nn, xValidation, yValidation)
     totalAccuracy.append(accuracy)
     if accuracy > maxAccuracy:
         maxAccuracy = accuracy
-        save_variable(nn, 'storedNN.npz')
+        save_variable(nn, 'storedNN_Chess.npz')
     cost = totalCost[epoch - 1]
     print('Epoch:',epoch)
     print('Accuracy:',accuracy)
     print('Cost:',totalCost[epoch - 1])
 
-if os.path.exists('storedNN.npz'):
-    storedNN = load_variable('storedNN.npz')
+if os.path.exists('storedNN_Chess.npz'):
+    storedNN = load_variable('storedNN_Chess.npz')
     wrongs, yPred, accuracy, yOutput = nn_test(storedNN, xTesting, yTesting)
     decisionValues = yOutput[:,0]
     print('Accuracy on Testset:', accuracy)
@@ -96,7 +110,7 @@ if os.path.exists('storedNN.npz'):
                 falsePositive += 1
             else:
                 trueNegative += 1
-    print(truePositive,trueNegative,falsePositive,falseNegative)
+    print(truePositive, trueNegative, falsePositive, falseNegative)
     totalScores = sorted(decisionValues)
     index = sorted(range(len(decisionValues)), key=decisionValues.__getitem__)
     labels = np.zeros(len(yTesting))
